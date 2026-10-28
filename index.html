@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heptathlon</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #fff; --text: #1d1d1b; --muted: #6b6b66; --border: #e3e2de;
+    --accent: #2f5d9e; --faster: #1f7a4d; --slower: #b3412f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --surface: #1f1f1e; --text: #ecebe7; --muted: #9a9993; --border: #33332f;
+      --accent: #8fb3e8; --faster: #6cc59a; --slower: #ec8b79;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 32px 0 8px; }
+  .muted { color: var(--muted); }
+  nav { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+  nav button { background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 12px; font: inherit; cursor: pointer; }
+  nav .date { font-weight: 600; }
+  .banner { padding: 10px 14px; border-radius: 6px; background: var(--surface);
+    border: 1px solid var(--border); margin: 12px 0; }
+  .banner.error { border-color: var(--slower); }
+  .scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  th { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  td.total { font-weight: 700; }
+  tr.me td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .faster { color: var(--faster); }
+  .slower { color: var(--slower); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Heptathlon</h1>
+  <div class="muted">Seven LinkedIn puzzles, one total time.</div>
+  <div id="banner"></div>
+  <nav>
+    <button id="prev" aria-label="Previous day">←</button>
+    <span class="date" id="date">Loading…</span>
+    <button id="next" aria-label="Next day">→</button>
+  </nav>
+  <div id="board"></div>
+  <div id="wow"></div>
+</main>
+<script type="module">
+  import { GAMES, addDays } from './lib/games.js';
+  import { leaderboard, weekOverWeek } from './lib/scoring.js';
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const time = s => s == null ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+  const delta = d => d == null ? '<span class="muted">—</span>'
+    : d === 0 ? '±0:00'
+    : `<span class="${d < 0 ? 'faster' : 'slower'}">${d < 0 ? '−' : '+'}${time(Math.abs(d))}</span>`;
+  const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString(undefined,
+    { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+  // Who "me" is: remembered from the last submission in this browser.
+  const store = {
+    get: () => { try { return localStorage.getItem('heptathlon-player'); } catch { return null; } },
+    set: v => { try { localStorage.setItem('heptathlon-player', v); } catch {} },
+  };
+
+  function banner(text, isError = false) {
+    $('banner').innerHTML = `<div class="banner${isError ? ' error' : ''}">${esc(text)}</div>`;
+  }
+
+  // The bookmarklet arrives here with #submit=<json>.
+  async function handleSubmission() {
+    if (!location.hash.startsWith('#submit=')) return;
+    const payload = decodeURIComponent(location.hash.slice('#submit='.length));
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      const res = await fetch('/api/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      store.set(body.player);
+      const n = body.saved;
+      banner(n === 0 ? `No finished games found for ${body.player}.`
+        : `Saved ${n} game${n === 1 ? '' : 's'} for ${body.player}.`);
+    } catch (e) {
+      banner('Could not save results: ' + e.message, true);
+    }
+  }
+
+  let current = null;
+
+  async function load(date) {
+    $('date').textContent = 'Loading…';
+    const res = await fetch('/api/results' + (date ? '?date=' + date : ''));
+    const body = await res.json();
+    if (!res.ok) { banner(body.error || 'Could not load results.', true); return; }
+    current = body.date;
+    render(body);
+  }
+
+  function render({ date, results }) {
+    if (!date) {
+      $('date').textContent = 'No results yet';
+      $('board').innerHTML = '';
+      $('wow').innerHTML = '';
+      return;
+    }
+    $('date').textContent = longDate(date);
+    const me = store.get();
+
+    const rows = leaderboard(results, date);
+    let rank = 0;
+    $('board').innerHTML = rows.length === 0 ? '<p class="muted">Nobody has submitted for this day.</p>' : `
+      <div class="scroll"><table>
+        <thead><tr><th>#</th><th>Player</th>${GAMES.map(g => `<th>${esc(g.name)}</th>`).join('')}<th>Total</th></tr></thead>
+        <tbody>${rows.map(r => `
+          <tr class="${r.player === me ? 'me' : ''}">
+            <td>${r.total == null ? '' : ++rank}</td>
+            <td>${esc(r.player)}</td>
+            ${GAMES.map(g => `<td>${time(r.times[g.slug])}</td>`).join('')}
+            <td class="total">${r.total == null ? '<span class="muted">incomplete</span>' : time(r.total)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`;
+
+    if (!me) { $('wow').innerHTML = ''; return; }
+    const w = weekOverWeek(results, me, date);
+    $('wow').innerHTML = `
+      <h2>${esc(me)}: compared with ${esc(longDate(w.previousDate))}</h2>
+      <div class="scroll"><table>
+        <thead><tr><th></th><th></th>${GAMES.map(g => `<th>${esc(g.name)}</th>`).join('')}<th>Total</th></tr></thead>
+        <tbody>
+          <tr><td></td><td>This week</td>${GAMES.map(g => `<td>${time(w.games[g.slug].seconds)}</td>`).join('')}<td class="total">${time(w.total)}</td></tr>
+          <tr><td></td><td>Last week</td>${GAMES.map(g => `<td>${time(w.games[g.slug].previous)}</td>`).join('')}<td class="total">${time(w.previousTotal)}</td></tr>
+          <tr><td></td><td>Change</td>${GAMES.map(g => `<td>${delta(w.games[g.slug].delta)}</td>`).join('')}<td class="total">${delta(w.delta)}</td></tr>
+        </tbody>
+      </table></div>`;
+  }
+
+  $('prev').onclick = () => current && load(addDays(current, -1));
+  $('next').onclick = () => current && load(addDays(current, 1));
+
+  await handleSubmission();
+  await load();
+</script>
+</body>
+</html>

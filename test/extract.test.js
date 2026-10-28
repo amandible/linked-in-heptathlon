@@ -13,6 +13,14 @@ test('reads the old page format (seconds, &quot; quotes)', () => {
   assert.deepEqual(extractResult(fixture('crossclimb-solved.html')), { edition: 909, seconds: 19 });
 });
 
+test('returns null for an unplayed game in the new format (time 0, no saved state)', () => {
+  assert.equal(extractResult(fixture('zip-unplayed.html')), null);
+});
+
+test('returns null for an unplayed game in the old format (timeElapsed null)', () => {
+  assert.equal(extractResult(fixture('crossclimb-unplayed.html')), null);
+});
+
 test('returns null for a page with no result', () => {
   assert.equal(extractResult('<html><body>nothing here</body></html>'), null);
 });

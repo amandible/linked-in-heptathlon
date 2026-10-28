@@ -8,7 +8,9 @@
 //   old stack (crossclimb, mini-sudoku):
 //     "entityUrn":"urn:li:fsd_game:(<member>,<gameTypeId>,<edition>)",
 //     "gameStoredRecord":{"timeElapsed":<seconds>, ...}
-// Unknown yet: what either stack shows for a game that's unplayed or in progress.
+// Unplayed (seen 2026-10-28): new stack has time $n0 and "mostRecentGameState":"$undefined";
+// old stack has "timeElapsed":null. Both show as null below.
+// Unknown yet: what either stack shows for a game that's in progress.
 
 const GAMES = ['queens', 'tango', 'zip', 'crossclimb', 'mini-sudoku', 'patches', 'wend'];
 
@@ -22,7 +24,8 @@ async function probe() {
     const newEdition = html.match(/"todaysGameEditionText":"(\d+)"/);
     const old = html.match(/"entityUrn":"urn:li:fsd_game:\([^,]+,\d+,(\d+)\)","gameStoredRecord":\{"timeElapsed":(\d+)/);
     if (newMs && newEdition) {
-      results[slug] = { edition: Number(newEdition[1]), seconds: Number(newMs[1]) / 1000 };
+      const unplayed = /"mostRecentGameState":"\$undefined"/.test(html) || Number(newMs[1]) === 0;
+      results[slug] = unplayed ? null : { edition: Number(newEdition[1]), seconds: Number(newMs[1]) / 1000 };
     } else if (old) {
       results[slug] = { edition: Number(old[1]), seconds: Number(old[2]) };
     } else {

@@ -4,3 +4,4 @@ node_modules/
 tmp/
 .vercel
 steps.txt
+.render-page-tmp.mjs

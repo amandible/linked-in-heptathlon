@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SLUGS } from '../lib/games.js';
-import { dailyTotal, leaderboard, weekOverWeek } from '../lib/scoring.js';
+import { dailyTotal, leaderboard, weekOverWeek, dayOverDay } from '../lib/scoring.js';
 
 // All seven games for one player on one date, each taking `seconds` (or per-game overrides).
 function day(player, date, seconds, overrides = {}) {
@@ -42,6 +42,19 @@ test('weekOverWeek compares with the same weekday a week earlier', () => {
   assert.equal(wow.delta, -5);
   assert.deepEqual(wow.games.zip, { seconds: 15, previous: 20, delta: -5 });
   assert.equal(wow.games.queens.delta, 0);
+});
+
+test('dayOverDay compares with the day before', () => {
+  const results = [
+    ...day('ann', '2026-10-25', 30),
+    ...day('ann', '2026-10-26', 20, { zip: 40 }),
+  ];
+  const dod = dayOverDay(results, 'ann', '2026-10-26');
+  assert.equal(dod.previousDate, '2026-10-25');
+  assert.equal(dod.total, 160);
+  assert.equal(dod.previousTotal, 210);
+  assert.equal(dod.delta, -50);
+  assert.deepEqual(dod.games.zip, { seconds: 40, previous: 30, delta: 10 });
 });
 
 test('weekOverWeek gives null deltas where last week is missing', () => {

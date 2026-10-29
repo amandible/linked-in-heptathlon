@@ -62,16 +62,17 @@ test('submit rejects unknown keys and bad results', async () => {
   assert.equal(rows.length, 0);
 });
 
-test('results returns the latest date and the same weekday a week earlier', async () => {
+test('results returns the latest date, the day before, and a week earlier', async () => {
   const { sql } = fakeSql();
   await submit(sql, post({ key: 'good-key', results: [
     { game: 'zip', edition: 588, seconds: 8 },  // 2026-10-26
+    { game: 'zip', edition: 587, seconds: 9 },  // 2026-10-25
     { game: 'zip', edition: 581, seconds: 10 }, // 2026-10-19
-    { game: 'zip', edition: 587, seconds: 99 }, // 2026-10-25, not included
+    { game: 'zip', edition: 584, seconds: 99 }, // 2026-10-22, not included
   ] }));
   const body = await (await results(sql, get(''))).json();
   assert.equal(body.date, '2026-10-26');
-  assert.deepEqual(body.results.map(r => r.date).sort(), ['2026-10-19', '2026-10-26']);
+  assert.deepEqual(body.results.map(r => r.date).sort(), ['2026-10-19', '2026-10-25', '2026-10-26']);
 });
 
 test('results with no data and with a bad date', async () => {

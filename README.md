@@ -27,9 +27,11 @@ linkedin.com; Chrome users would need a small browser extension instead (not bui
 - A day's heptathlon total is the sum of all seven times. If any game is missing, there
   is no total that day; the finished games are still shown.
 - The leaderboard ranks totals fastest first, then lists players missing a game.
-- Week-over-week: each day is compared only with the same weekday a week earlier,
-  because puzzle difficulty varies by weekday. It's shown for whoever last submitted
-  from this browser.
+- Personal comparisons, shown for whoever last submitted from this browser:
+  - vs. last week: the same weekday a week earlier. The meaningful comparison, because
+    puzzle difficulty varies by weekday.
+  - vs. yesterday: puzzles get steadily harder through the week, so this is a rough read
+    on form. Monday vs. Sunday means little.
 - Each result is dated by its puzzle edition, not by when it was submitted: every game
   publishes one edition per day (anchors in `lib/games.js`).
 
@@ -56,12 +58,12 @@ bookmarklet means removing and re-adding the player, which also deletes their re
 
 ## Code
 
-- `index.html`: the site (leaderboard and week-over-week), using `lib/` modules directly.
+- `index.html`: the site (leaderboard and personal comparisons), using `lib/` modules directly.
 - `api/submit.js`, `api/results.js`: Vercel functions; logic is in `lib/api.js`.
 - `lib/games.js`: the game list, and edition → date.
 - `lib/extract.js`: reads `{ edition, seconds }` from a game page's HTML. LinkedIn uses
   two page formats; see `test/fixtures/README.md`.
-- `lib/scoring.js`: daily totals, leaderboard, week-over-week deltas.
+- `lib/scoring.js`: daily totals, leaderboard, day-over-day and week-over-week deltas.
 - `lib/db.js`: schema and queries.
 - `lib/bookmarklet.js`: builds a bookmarklet around `lib/extract.js`.
 - `scripts/dev.js`: run the site locally (`node --env-file=.env.local scripts/dev.js 3000`).

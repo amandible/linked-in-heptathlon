@@ -37,6 +37,7 @@
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
   td.total { font-weight: 700; }
   tr.me td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  tr.sep td { border-top: 2px solid var(--border); }
   .faster { color: var(--faster); }
   .slower { color: var(--slower); }
 </style>
@@ -56,7 +57,7 @@
 </main>
 <script type="module">
   import { GAMES, addDays } from './lib/games.js';
-  import { leaderboard, weekOverWeek } from './lib/scoring.js';
+  import { leaderboard, weekOverWeek, dayOverDay } from './lib/scoring.js';
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -132,15 +133,24 @@
       </table></div>`;
 
     if (!me) { $('wow').innerHTML = ''; return; }
-    const w = weekOverWeek(results, me, date);
+    const day = dayOverDay(results, me, date);
+    const week = weekOverWeek(results, me, date);
+    const shortDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString(undefined,
+      { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const row = (label, cells, total, cls = '') =>
+      `<tr class="${cls}"><td></td><td>${label}</td>${cells.map(c => `<td>${c}</td>`).join('')}<td class="total">${total}</td></tr>`;
+    const times = (c, key) => GAMES.map(g => time(c.games[g.slug][key]));
+    const deltas = c => GAMES.map(g => delta(c.games[g.slug].delta));
     $('wow').innerHTML = `
-      <h2>${esc(me)}: compared with ${esc(longDate(w.previousDate))}</h2>
+      <h2>${esc(me)}: compared with yesterday and last week</h2>
       <div class="scroll"><table>
         <thead><tr><th></th><th></th>${GAMES.map(g => `<th>${esc(g.name)}</th>`).join('')}<th>Total</th></tr></thead>
         <tbody>
-          <tr><td></td><td>This week</td>${GAMES.map(g => `<td>${time(w.games[g.slug].seconds)}</td>`).join('')}<td class="total">${time(w.total)}</td></tr>
-          <tr><td></td><td>Last week</td>${GAMES.map(g => `<td>${time(w.games[g.slug].previous)}</td>`).join('')}<td class="total">${time(w.previousTotal)}</td></tr>
-          <tr><td></td><td>Change</td>${GAMES.map(g => `<td>${delta(w.games[g.slug].delta)}</td>`).join('')}<td class="total">${delta(w.delta)}</td></tr>
+          ${row(esc(shortDate(date)), times(day, 'seconds'), time(day.total))}
+          ${row(esc(shortDate(day.previousDate)), times(day, 'previous'), time(day.previousTotal), 'sep')}
+          ${row('vs. yesterday', deltas(day), delta(day.delta))}
+          ${row(esc(shortDate(week.previousDate)), times(week, 'previous'), time(week.previousTotal), 'sep')}
+          ${row('vs. last week', deltas(week), delta(week.delta))}
         </tbody>
       </table></div>`;
   }

@@ -1,0 +1,9 @@
+1. Add them, using the name you want on the leaderboard:
+! node --env-file=.env.local scripts/add-player.js Sam https://linked-in-heptathlon.vercel.app
+2. Send them the contents of tmp/bookmarklet-Sam.txt over something private, like a direct message or email to them. It contains their key, so treat it like a password: anyone who has it can post times as them.
+3. They make a Firefox bookmark with that text as the URL, the same way you did.
+4. Delete the file from tmp/.
+
+Two things to know before you invite anyone:
+- The leaderboard is public. Anyone with the site's address can see everyone's names and times. If that matters to a friend, they could use a nickname. Adding a password to the site would also be possible.
+- The setup step is clunky for a friend. Pasting a 2,000-character URL into a bookmark is fiddly. An easier version would be a one-time invite link: you send it, they open it, and the page shows a "Heptathlon" button to drag onto their bookmarks bar. That's a moderate change, so I'd only build it if you expect more than a friend or two.

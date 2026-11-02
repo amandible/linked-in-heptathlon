@@ -6,7 +6,8 @@ friends.
 
 ## How it works
 
-1. Each person has their own bookmarklet, containing a private key that identifies them.
+1. Each person has their own bookmarklet (Firefox) or Chrome extension, containing a private
+   key that identifies them.
 2. Clicked on any linkedin.com page while logged in, it fetches the seven game pages
    (the same as opening them) and reads today's edition and solve time from each.
 3. It then opens the heptathlon site with those times in the URL fragment; the site
@@ -18,9 +19,11 @@ Nobody's LinkedIn credentials ever leave their own browser.
 Run the bookmarklet after finishing all seven games: in-progress games aren't detected.
 Running it again later is harmless; a re-submitted game replaces its earlier time.
 
-**Browser support:** works in Firefox. Chrome (and likely other Chromium browsers)
-applies LinkedIn's Content Security Policy to bookmarklets, which blocks them on
-linkedin.com; Chrome users would need a small browser extension instead (not built).
+**Browser support:** the bookmarklet works in Firefox. Chrome (and likely other Chromium
+browsers) applies LinkedIn's Content Security Policy to bookmarklets, which blocks them on
+linkedin.com, so Chrome users get a small extension instead: a toolbar button that runs the
+same code. It's installed unpacked (Developer mode → Load unpacked), with only the
+`activeTab` and `scripting` permissions.
 
 ## Scoring
 
@@ -54,10 +57,15 @@ node --env-file=.env.local scripts/add-player.js <name> <site-url>
 node --env-file=.env.local scripts/remove-player.js <name>
 ```
 
-`add-player` writes the player's bookmarklet to `tmp/bookmarklet-<name>.txt`. The
-database keeps only a hash of the key, so that file is the only copy: give it to the
-player (they make a bookmark with its contents as the URL), then delete it. A lost
-bookmarklet means removing and re-adding the player, which also deletes their results.
+`add-player` writes the player's bookmarklet to `tmp/bookmarklet-<name>.txt` and their
+Chrome extension to the folder `tmp/extension-<name>/`. The database keeps only a hash of the
+key, so these are the only copies: give the player the one they need, then delete both.
+- Firefox: they make a bookmark with the file's contents as the URL.
+- Chrome: zip the folder and send it; its `README.txt` tells them what it does and how to
+  install it.
+
+A lost bookmarklet or extension means removing and re-adding the player, which also deletes
+their results.
 
 ## Code
 
@@ -69,6 +77,8 @@ bookmarklet means removing and re-adding the player, which also deletes their re
 - `lib/scoring.js`: daily totals, leaderboard, day-over-day and week-over-week deltas.
 - `lib/db.js`: schema and queries.
 - `lib/bookmarklet.js`: builds a bookmarklet around `lib/extract.js`.
+- `lib/extension.js`: builds the Chrome extension (manifest, a background script that injects
+  the bookmarklet's code on click, and a README for the player).
 - `scripts/dev.js`: run the site locally (`node --env-file=.env.local scripts/dev.js 3000`).
   Note it uses the real database.
 - `scripts/render-page.js`: prints what the page shows for a player, as text, using a running

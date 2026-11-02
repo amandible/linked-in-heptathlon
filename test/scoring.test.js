@@ -17,16 +17,50 @@ test('dailyTotal is null when a game is missing', () => {
   assert.equal(dailyTotal({ queens: 16, tango: 34 }), null);
 });
 
-test('leaderboard ranks complete totals fastest first, incomplete players last', () => {
+test('leaderboard ranks totals fastest first, ignoring other days', () => {
+  const results = [
+    ...day('ann', '2026-10-26', 20),
+    ...day('bea', '2026-10-26', 10),
+    ...day('dee', '2026-10-25', 5),
+  ];
+  const board = leaderboard(results, '2026-10-26');
+  assert.deepEqual(board.map(r => [r.player, r.total]), [['bea', 70], ['ann', 140]]);
+});
+
+test('a skipped game counts as the average of those who played it', () => {
   const results = [
     ...day('ann', '2026-10-26', 20),
     ...day('bea', '2026-10-26', 10),
     ...without(day('cal', '2026-10-26', 1), 'wend'),
-    ...day('dee', '2026-10-25', 5), // other day, ignored
+  ];
+  const cal = leaderboard(results, '2026-10-26').find(r => r.player === 'cal');
+  assert.deepEqual(cal.placeholders, { wend: { seconds: 15, players: 2 } });
+  assert.equal(cal.total, 6 + 15);
+  assert.equal('wend' in cal.times, false);
+});
+
+test('a game nobody played is left out of every total', () => {
+  const results = [...without(day('ann', '2026-10-26', 20), 'zip'), ...without(day('bea', '2026-10-26', 10), 'zip')];
+  const board = leaderboard(results, '2026-10-26');
+  assert.deepEqual(board.map(r => r.total), [60, 120]);
+  assert.deepEqual(board[0].placeholders, {});
+});
+
+test('beaten counts faster-total players beaten on each game, real times only, ties excluded', () => {
+  const results = [
+    ...day('ann', '2026-10-26', 10),                         // total 70
+    ...without(day('bea', '2026-10-26', 12), 'queens'),      // 72 + queens placeholder 7.5
+    ...day('cal', '2026-10-26', 30, { zip: 5, tango: 10, queens: 5 }), // total 140
   ];
   const board = leaderboard(results, '2026-10-26');
-  assert.deepEqual(board.map(r => [r.player, r.total]), [['bea', 70], ['ann', 140], ['cal', null]]);
-  assert.equal(board[2].times.zip, 1);
+  assert.deepEqual(board.map(r => r.player), ['ann', 'bea', 'cal']);
+  const cal = board[2];
+  assert.equal(cal.beaten.zip, 2);    // 5 beats ann's 10 and bea's 12
+  assert.equal(cal.beaten.tango, 1);  // 10 ties ann (no), beats bea's 12
+  assert.equal(cal.beaten.wend, 0);
+  assert.equal(cal.beaten.queens, 1); // beats ann's 10; bea's 7.5 placeholder doesn't count
+  assert.deepEqual(board[0].beaten, { ...Object.fromEntries(SLUGS.map(s => [s, 0])) });
+  assert.equal('queens' in board[1].beaten, false);
 });
 
 test('weekOverWeek compares with the same weekday a week earlier', () => {

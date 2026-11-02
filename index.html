@@ -43,6 +43,7 @@
   tr.compare .abs, tr.compare.show-abs .rel { display: none; }
   tr.compare.show-abs .abs { display: inline; }
   .hint { font-size: 0.85rem; margin: 8px 0 0; }
+  .placeholder { font-style: italic; color: var(--muted); }
   .faster { color: var(--faster); }
   .slower { color: var(--slower); }
 </style>
@@ -123,19 +124,36 @@
     const me = store.get();
 
     const rows = leaderboard(results, date);
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    // Green tint for beating players ranked higher on a game: stronger the more you beat,
+    // on one scale for the whole board (full strength = everyone else).
+    const cell = (r, slug) => {
+      if (slug in r.times) {
+        const n = r.beaten[slug];
+        if (!n) return `<td>${time(r.times[slug])}</td>`;
+        const pct = Math.round(10 + 40 * n / (rows.length - 1));
+        return `<td style="background: color-mix(in srgb, var(--faster) ${pct}%, transparent)"
+          title="Beat ${plural(n, 'player')} ranked higher today">${time(r.times[slug])}</td>`;
+      }
+      const p = r.placeholders[slug];
+      if (!p) return '<td>—</td>';
+      return `<td><span class="placeholder" title="Placeholder: average of ${plural(p.players, 'player')} who played">${time(p.seconds)}</span></td>`;
+    };
     let rank = 0;
     $('board').innerHTML = rows.length === 0 ? '<p class="muted">Nobody has submitted for this day.</p>' : `
       <div class="scroll"><table class="board">
         <thead><tr><th>#</th><th>Player</th>${GAMES.map(g => `<th>${esc(g.name)}</th>`).join('')}<th>Total</th></tr></thead>
         <tbody>${rows.map(r => `
           <tr class="${r.player === me ? 'me' : ''}">
-            <td>${r.total == null ? '' : ++rank}</td>
+            <td>${++rank}</td>
             <td>${esc(r.player)}</td>
-            ${GAMES.map(g => `<td>${time(r.times[g.slug])}</td>`).join('')}
-            <td class="total">${r.total == null ? '<span class="muted">incomplete</span>' : time(r.total)}</td>
+            ${GAMES.map(g => cell(r, g.slug)).join('')}
+            <td class="total">${time(r.total)}</td>
           </tr>`).join('')}
         </tbody>
-      </table></div>`;
+      </table></div>
+      <p class="muted hint">Green: faster on that puzzle than players ranked higher today (greener = more of them).
+        <span class="placeholder">Italic</span>: a skipped puzzle, counted as the average of those who played it.</p>`;
 
     if (!me) { $('wow').innerHTML = ''; return; }
     const day = dayOverDay(results, me, date);

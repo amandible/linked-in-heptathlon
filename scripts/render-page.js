@@ -1,6 +1,8 @@
 // Runs index.html's script in Node against a running local server and prints what the page
 // shows, as text: a quick check without a browser. Clicks and CSS aren't exercised.
 // Usage (with the dev server running): node scripts/render-page.js <player-name> [port] [date]
+// Or with made-up data instead of the server: node scripts/render-page.js <player-name> <file.json>
+// where the file is an /api/results response: { date, results: [{ player, game, date, seconds }] }.
 import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 
 const [player, port = '3000', date] = process.argv.slice(2);
@@ -19,7 +21,9 @@ globalThis.localStorage = { getItem: () => player, setItem() {} };
 globalThis.location = { hash: '', pathname: '/', search: '' };
 globalThis.history = { replaceState() {} };
 const realFetch = fetch;
-globalThis.fetch = url => realFetch(`http://localhost:${port}` + url.replace(/^\/api\/results$/, date ? `/api/results?date=${date}` : url));
+globalThis.fetch = port.endsWith('.json')
+  ? async () => new Response(readFileSync(port))
+  : url => realFetch(`http://localhost:${port}` + url.replace(/^\/api\/results$/, date ? `/api/results?date=${date}` : url));
 
 // The page imports ./lib/...; run it from a temporary module next to index.html.
 const tmp = new URL('../.render-page-tmp.mjs', import.meta.url);
@@ -30,8 +34,10 @@ try {
   rmSync(tmp);
 }
 
-// The comparison rows hold both views; show which is which.
+// The comparison rows hold both views; show which is which. Green leaderboard cells show as
+// "+N" (players beaten), placeholders as "~".
 const text = s => s
+  .replace(/<td style="[^"]*"\s*title="Beat (\d+)[^"]*">/g, ' +$1 ').replace(/<span class="placeholder" title[^>]*>/g, ' ~')
   .replace(/<span class="rel">/g, ' change ').replace(/<span class="abs">/g, ' / times ')
   .replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
 console.log(els.date.textContent);

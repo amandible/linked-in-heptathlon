@@ -27,11 +27,17 @@ same code. It's installed unpacked (Developer mode → Load unpacked), with only
 
 ## Scoring
 
-- A day's heptathlon total is the sum of all seven times. If any game is missing, there
-  is no total that day; the finished games are still shown.
-- The leaderboard ranks totals fastest first, then lists players missing a game.
+- A day's heptathlon total is the sum of all seven times. Playing all seven is optional: a
+  skipped puzzle counts as the average time of everyone who played it that day (a
+  placeholder, shown in italics, so it can change as more people submit). A puzzle nobody
+  played that day is left out of every total.
+- The leaderboard ranks totals fastest first.
+- A time is green when it beat players ranked higher overall that day on that puzzle; the
+  more of them it beat, the greener (one scale for the whole board). Only their real times
+  count, not placeholders, and ties don't count. Slower times aren't marked.
 - Games are listed in LinkedIn's order (`lib/games.js`).
-- Personal comparisons, shown for whoever last submitted from this browser. Each comparison
+- Personal comparisons, shown for whoever last submitted from this browser. These use only
+  real times: a total change appears only when both days have all seven. Each comparison
   is one row showing the change from that day to today (green = faster today); clicking the
   row switches it to that day's actual times.
   - vs. last week: the same weekday a week earlier. The meaningful comparison, because
@@ -82,7 +88,7 @@ their results.
 - `scripts/dev.js`: run the site locally (`node --env-file=.env.local scripts/dev.js 3000`).
   Note it uses the real database.
 - `scripts/render-page.js`: prints what the page shows for a player, as text, using a running
-  local server. A quick check without a browser.
+  local server or a JSON file of made-up results. A quick check without a browser.
 - `scripts/probe-linkedin-times.js`: paste into the DevTools console on linkedin.com to
   check that extraction still works against live pages.
 

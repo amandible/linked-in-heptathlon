@@ -40,8 +40,12 @@
   tr.compare { cursor: pointer; }
   tr.compare:hover td, tr.compare:focus-visible td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
   tr.compare:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  tr.compare .abs, tr.compare.show-abs .rel { display: none; }
-  tr.compare.show-abs .abs { display: inline; }
+  /* Both views share one grid cell, and the hidden one keeps its space, so columns don't
+     shift when a row is toggled. */
+  .both { display: inline-grid; justify-items: end; }
+  .both > span { grid-area: 1 / 1; }
+  tr.compare .abs, tr.compare.show-abs .rel { visibility: hidden; }
+  tr.compare.show-abs .abs { visibility: visible; }
   .hint { font-size: 0.85rem; margin: 8px 0 0; }
   .placeholder { font-style: italic; color: var(--muted); }
   .faster { color: var(--faster); }
@@ -163,7 +167,7 @@
     const label = (name, d) => `${name} <span class="muted">${esc(shortDate(d))}</span>`;
     // A comparison row holds both views; clicking it toggles between the change from that
     // day to today (default) and that day's actual times.
-    const both = (rel, abs) => `<span class="rel">${rel}</span><span class="abs">${abs}</span>`;
+    const both = (rel, abs) => `<span class="both"><span class="rel">${rel}</span><span class="abs">${abs}</span></span>`;
     const compareRow = (name, c) => `
       <tr class="compare" tabindex="0" title="Click to switch between change and actual times">
         <td>${label(name, c.previousDate)}</td>

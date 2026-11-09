@@ -180,8 +180,8 @@
         <thead><tr><th></th>${GAMES.map(g => `<th>${esc(g.name)}</th>`).join('')}<th>Total</th></tr></thead>
         <tbody>
           <tr><td>${label('Today', date)}</td>${GAMES.map(g => `<td>${time(day.games[g.slug].seconds)}</td>`).join('')}<td class="total">${time(day.total)}</td></tr>
-          ${compareRow('Yesterday', day)}
           ${compareRow('Last week', week)}
+          ${compareRow('Yesterday', day)}
         </tbody>
       </table></div>
       <p class="muted hint">Changes are today minus that day: green is faster today. Click a row to see that day's times.</p>`;

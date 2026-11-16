@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { buildBookmarklet } from '../lib/bookmarklet.js';
+import { buildBookmarklet, iphoneInstructions } from '../lib/bookmarklet.js';
 
 const fixture = name => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8');
 
@@ -42,4 +42,10 @@ test('bookmarklet refuses to run off LinkedIn', async () => {
   const { href, alerts } = await run(buildBookmarklet({ key: 'k', siteUrl: 'https://example.test' }), 'example.com', {});
   assert.equal(href, null);
   assert.equal(alerts.length, 1);
+});
+
+test('iPhone instructions name the player and site', () => {
+  const text = iphoneInstructions({ name: 'Pat', siteUrl: 'https://example.test' });
+  assert.match(text, /for Pat/);
+  assert.match(text, /https:\/\/example\.test/);
 });

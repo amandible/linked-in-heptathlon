@@ -23,7 +23,8 @@ Running it again later is harmless; a re-submitted game replaces its earlier tim
 browsers) applies LinkedIn's Content Security Policy to bookmarklets, which blocks them on
 linkedin.com, so Chrome users get a small extension instead: a toolbar button that runs the
 same code. It's installed unpacked (Developer mode → Load unpacked), with only the
-`activeTab` and `scripting` permissions.
+`activeTab` and `scripting` permissions. iPhone Safari may run the bookmarklet but hasn't been
+tested yet; `add-player` writes setup steps for it.
 
 ## Scoring
 
@@ -63,10 +64,13 @@ node --env-file=.env.local scripts/add-player.js <name> <site-url>
 node --env-file=.env.local scripts/remove-player.js <name>
 ```
 
-`add-player` writes the player's bookmarklet to `tmp/bookmarklet-<name>.txt` and their
+`add-player` writes the player's bookmarklet to `tmp/bookmarklet-<name>.txt`, iPhone setup
+steps to `tmp/iphone-<name>.txt`, and their
 Chrome extension to the folder `tmp/extension-<name>/`. The database keeps only a hash of the
-key, so these are the only copies: give the player the one they need, then delete both.
+key, so these are the only copies: give the player what they need, then delete them.
 - Firefox: they make a bookmark with the file's contents as the URL.
+- iPhone (Safari, untested): send `tmp/iphone-<name>.txt` as one message, then the
+  bookmarklet as a message of its own, so they can long-press and copy it whole.
 - Chrome: zip the folder and send it; its `README.txt` tells them what it does and how to
   install it.
 
